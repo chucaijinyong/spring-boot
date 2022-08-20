@@ -16,6 +16,11 @@
 
 package org.springframework.boot.loader;
 
+import org.springframework.boot.loader.archive.Archive;
+import org.springframework.boot.loader.archive.ExplodedArchive;
+import org.springframework.boot.loader.archive.JarFileArchive;
+import org.springframework.boot.loader.jar.JarFile;
+
 import java.io.File;
 import java.net.URI;
 import java.net.URL;
@@ -23,11 +28,6 @@ import java.security.CodeSource;
 import java.security.ProtectionDomain;
 import java.util.ArrayList;
 import java.util.List;
-
-import org.springframework.boot.loader.archive.Archive;
-import org.springframework.boot.loader.archive.ExplodedArchive;
-import org.springframework.boot.loader.archive.JarFileArchive;
-import org.springframework.boot.loader.jar.JarFile;
 
 /**
  * Base class for launchers that can start an application with a fully configured
@@ -43,9 +43,11 @@ public abstract class Launcher {
 	 * called by a subclass {@code public static void main(String[] args)} method.
 	 * @param args the incoming arguments
 	 * @throws Exception if the application fails to launch
+	 * 入口点，被子类JarLauncher#main(java.lang.String[])调用
 	 */
 	protected void launch(String[] args) throws Exception {
 		JarFile.registerUrlProtocolHandler();
+		// 针对归档文件，创建类加载器，目的就是为了加载归档文件
 		ClassLoader classLoader = createClassLoader(getClassPathArchives());
 		launch(args, getMainClass(), classLoader);
 	}
@@ -69,6 +71,7 @@ public abstract class Launcher {
 	 * @param urls the URLs
 	 * @return the classloader
 	 * @throws Exception if the classloader cannot be created
+	 * getClass().getClassLoader()是获取该类的父类加载器
 	 */
 	protected ClassLoader createClassLoader(URL[] urls) throws Exception {
 		return new LaunchedURLClassLoader(urls, getClass().getClassLoader());
@@ -83,6 +86,7 @@ public abstract class Launcher {
 	 */
 	protected void launch(String[] args, String mainClass, ClassLoader classLoader)
 			throws Exception {
+		// classLoader将SpringBoot自己的类加载器放进去，将来的某个时间会用到
 		Thread.currentThread().setContextClassLoader(classLoader);
 		createMainMethodRunner(mainClass, args, classLoader).run();
 	}

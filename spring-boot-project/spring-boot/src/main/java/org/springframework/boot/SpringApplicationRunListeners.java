@@ -27,7 +27,9 @@ import java.util.List;
 
 /**
  * SpringApplicationRunListener 数组的封装
- *
+ * 实现了运行监听器的类，可以在事件发布之前做一些操作，这也是扩展点之一哦
+ * 运行监听器的作用我的理解其实是桥接，桥接事件监听器ApplicationListener和Spring的广播器SimpleApplicationEventMulticaster，
+ * 它通过集成广播器，从而通过广播器发送 ApplicationEvent事件，使得能够对环境准备和上下文的整个生命周期进行监听
  * A collection of {@link SpringApplicationRunListener}.
  *
  * @author Phillip Webb
@@ -53,12 +55,20 @@ class SpringApplicationRunListeners {
 		}
 	}
 
+	/**
+	* 环境准备好后，可以对环境中的变量进行增删改查，时机有多个
+	*/
 	public void environmentPrepared(ConfigurableEnvironment environment) {
 		for (SpringApplicationRunListener listener : this.listeners) {
+			// 可以使用来实现SpringApplicationRunListener从而实现environmentPrepared方法往ConfigurableEnvironment更新属性信息
+//			比如加载properties和yaml文件就是这样实现的，通过调用ConfigFileApplicationListener.onApplicationEvent方法，从而调用onApplicationEnvironmentPreparedEvent方法
 			listener.environmentPrepared(environment);
 		}
 	}
 
+	/**
+	* 此处会发布容器准备好的事件，可以做扩展点，和上面的思路是一样的
+	*/
 	public void contextPrepared(ConfigurableApplicationContext context) {
 		for (SpringApplicationRunListener listener : this.listeners) {
 			listener.contextPrepared(context);

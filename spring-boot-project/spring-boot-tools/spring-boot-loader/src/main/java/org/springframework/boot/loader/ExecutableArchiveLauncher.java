@@ -16,18 +16,19 @@
 
 package org.springframework.boot.loader;
 
+import org.springframework.boot.loader.archive.Archive;
+
 import java.util.ArrayList;
 import java.util.List;
 import java.util.jar.JarEntry;
 import java.util.jar.Manifest;
-
-import org.springframework.boot.loader.archive.Archive;
 
 /**
  * Base class for executable archive {@link Launcher}s.
  *
  * @author Phillip Webb
  * @author Andy Wilkinson
+ * 可执行的归档登录器
  */
 public abstract class ExecutableArchiveLauncher extends Launcher {
 
@@ -55,6 +56,7 @@ public abstract class ExecutableArchiveLauncher extends Launcher {
 		Manifest manifest = this.archive.getManifest();
 		String mainClass = null;
 		if (manifest != null) {
+			// 获取你要运行工程的启动类
 			mainClass = manifest.getMainAttributes().getValue("Start-Class");
 		}
 		if (mainClass == null) {
@@ -66,6 +68,7 @@ public abstract class ExecutableArchiveLauncher extends Launcher {
 
 	@Override
 	protected List<Archive> getClassPathArchives() throws Exception {
+//		会将BOOT-INF下的所有class文件和jar文件都放置到List<Archive>集合当中
 		List<Archive> archives = new ArrayList<>(
 				this.archive.getNestedArchives(this::isNestedArchive));
 		postProcessClassPathArchives(archives);

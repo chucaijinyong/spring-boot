@@ -41,10 +41,15 @@ public class MainMethodRunner {
 		this.args = (args != null) ? args.clone() : null;
 	}
 
+	/**
+	* 运行主程序
+	*/
 	public void run() throws Exception {
+		// 从SpringBoot自定义的类加载器中获取运行的主类class
 		Class<?> mainClass = Thread.currentThread().getContextClassLoader()
 				.loadClass(this.mainClassName);
 		Method mainMethod = mainClass.getDeclaredMethod("main", String[].class);
+		// 反射执行主配置类的main方法就把项目启动起来了【为什么对象传了null，因为静态方法不归属于所在的类，而是属于当前所在的类从属的Class对象】
 		mainMethod.invoke(null, new Object[] { this.args });
 	}
 

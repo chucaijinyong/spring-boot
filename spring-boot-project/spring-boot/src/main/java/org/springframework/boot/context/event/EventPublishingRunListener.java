@@ -18,7 +18,6 @@ package org.springframework.boot.context.event;
 
 import org.apache.commons.logging.Log;
 import org.apache.commons.logging.LogFactory;
-
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.SpringApplicationRunListener;
 import org.springframework.context.ApplicationContextAware;
@@ -45,7 +44,7 @@ import org.springframework.util.ErrorHandler;
 public class EventPublishingRunListener implements SpringApplicationRunListener, Ordered {
 
     /**
-     * Spring 应用
+     * Spring 应用【这个属性很重要，因为该属性中有从spring.factories中收集的ApplicationContextInitializer上下文初始化器和事件监听器ApplicationListener的集合】
      */
 	private final SpringApplication application;
     /**
@@ -53,16 +52,32 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
      */
 	private final String[] args;
     /**
-     * 事件广播器
+     * 简单应用事件广播器-这个是spring的组件
      */
 	private final SimpleApplicationEventMulticaster initialMulticaster;
 
+	/**
+	* 你知道这个地方的初始化时机吗？在这里SpringApplication#getSpringFactoriesInstances(java.lang.Class, java.lang.Class[], java.lang.Object...)
+	 * 这里有个注意点，如果实现了SpringApplicationRunListener，需要初始化构造起的，因为创建该实现类对象时是基于构造器创建的
+	*/
 	public EventPublishingRunListener(SpringApplication application, String[] args) {
 		this.application = application;
 		this.args = args;
 		// 创建 SimpleApplicationEventMulticaster 对象
 		this.initialMulticaster = new SimpleApplicationEventMulticaster();
-		// 添加应用的监听器们，到 initialMulticaster 中
+		// 从SpringApplication中获取事件监听器，添加到广播器initialMulticaster中。这个步骤非常重要，因为以后的事件监听器遍历都是基于此的。
+//		该事件广播器是spring的,通过spring的事件广播器发送Springboot的定义的事件，不过springBoot的事件实现了Spring的ApplicationEvent顶层接口
+//		SpringBoot的很多事件都是基于事件监听来完成的,比如说文件编码,配置文件的处理【处理application.yml和application.properties】,日志的处理等等
+//		org.springframework.context.ApplicationListener=\
+//		org.springframework.boot.ClearCachesApplicationListener,\
+//		org.springframework.boot.builder.ParentContextCloserApplicationListener,\
+//		org.springframework.boot.context.FileEncodingApplicationListener,\
+//		org.springframework.boot.context.config.AnsiOutputApplicationListener,\
+//		org.springframework.boot.context.config.ConfigFileApplicationListener,\
+//		org.springframework.boot.context.config.DelegatingApplicationListener,\
+//		org.springframework.boot.context.logging.ClasspathLoggingApplicationListener,\
+//		org.springframework.boot.context.logging.LoggingApplicationListener,\
+//		org.springframework.boot.liquibase.LiquibaseServiceLocatorApplicationListener
 		for (ApplicationListener<?> listener : application.getListeners()) {
 			this.initialMulticaster.addApplicationListener(listener);
 		}
@@ -78,7 +93,12 @@ public class EventPublishingRunListener implements SpringApplicationRunListener,
 		this.initialMulticaster.multicastEvent(new ApplicationStartingEvent(this.application, this.args));
 	}
 
-	@Override // ApplicationEnvironmentPreparedEvent
+	/**
+	* 通过spring的事件多播器initialMulticaster来发布广播事件ApplicationEnvironmentPreparedEvent，只要我们实现ApplicationListener监听器，重写其OnApplicationListener方法就能监听，
+	 * 【这里我们得出结论，SpringBoot的事件监听最终是通过Spring事件监听来实现】
+	 * 这样ConfigFileApplicationListener#onApplicationEvent() 方法就可以从监听事件中获取ConfigurableEnvironment环境变量，对环境变量的属性进行增加或更新
+	*/
+	@Override
 	public void environmentPrepared(ConfigurableEnvironment environment) {
 		this.initialMulticaster.multicastEvent(new ApplicationEnvironmentPreparedEvent(this.application, this.args, environment));
 	}

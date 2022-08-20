@@ -78,6 +78,8 @@ import java.util.stream.Collectors;
  * @author Andy Wilkinson
  * @author Eddú Meléndez
  * @author Madhura Bhave
+ * 实现了SmartApplicationListener，就能对Spring事件进行监听了
+ * 因为又实现了EnvironmentPostProcessor，会调用该类中的postProcessEnvironment方法，对环境进行后置处理
  */
 public class ConfigFileApplicationListener implements EnvironmentPostProcessor, SmartApplicationListener, Ordered {
 
@@ -130,15 +132,22 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 
 	private int order = DEFAULT_ORDER;
 
+	/**
+	* 感兴趣的事件，只有满足了感兴趣的事件后才会调用其监听方法onApplicationEvent
+	*/
 	@Override
 	public boolean supportsEventType(Class<? extends ApplicationEvent> eventType) {
 		return ApplicationEnvironmentPreparedEvent.class.isAssignableFrom(eventType)
 				|| ApplicationPreparedEvent.class.isAssignableFrom(eventType);
 	}
 
+	/**
+	* springboot的环境准备好后会执行onApplicationEnvironmentPreparedEvent
+	 * 上下文准备好后会执行onApplicationPreparedEvent
+	*/
 	@Override
 	public void onApplicationEvent(ApplicationEvent event) {
-	    // 如果是 ApplicationEnvironmentPreparedEvent 事件，说明 Spring 环境准备好了，则执行相应的处理
+	    // 如果是 ApplicationEnvironmentPreparedEvent 事件，说明 Spring 环境准备好了，springboot则可以执行配置文件的添加
 		if (event instanceof ApplicationEnvironmentPreparedEvent) {
 			onApplicationEnvironmentPreparedEvent((ApplicationEnvironmentPreparedEvent) event);
 		}
@@ -148,14 +157,17 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 		}
 	}
 
+	/**
+	* 监听ApplicationEnvironmentPreparedEvent环境准备好的事件，触发事件会执行从而完成配置的加载
+	*/
 	private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
 		// 加载指定类型 EnvironmentPostProcessor 对应的，在 `META-INF/spring.factories` 里的类名的数组
 	    List<EnvironmentPostProcessor> postProcessors = loadPostProcessors();
-	    // 加入自己
+	    // 加入自己 ConfigFileApplicationListener。这样的话加上读取到的三个就会有4个实现类
 		postProcessors.add(this);
 		// 排序 postProcessors 数组
 		AnnotationAwareOrderComparator.sort(postProcessors);
-		// 遍历 postProcessors 数组，逐个执行。
+		// 遍历 postProcessors 数组，逐个执行。该ConfigFileApplicationListener实现了EnvironmentPostProcessor，也会执行本类的postProcessEnvironment方法
 		for (EnvironmentPostProcessor postProcessor : postProcessors) {
 			postProcessor.postProcessEnvironment(event.getEnvironment(), event.getSpringApplication());
 		}
@@ -165,6 +177,9 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 		return SpringFactoriesLoader.loadFactories(EnvironmentPostProcessor.class, getClass().getClassLoader());
 	}
 
+	/**
+	* 执行环境的后置处理，解析配置文件增加属性源
+	*/
 	@Override
 	public void postProcessEnvironment(ConfigurableEnvironment environment, SpringApplication application) {
 		addPropertySources(environment, application.getResourceLoader());
@@ -182,11 +197,12 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	 * @param environment the environment to add source to
 	 * @param resourceLoader the resource loader
 	 * @see #addPostProcessors(ConfigurableApplicationContext)
+	 * 解析配置文件增加属性源
 	 */
 	protected void addPropertySources(ConfigurableEnvironment environment,ResourceLoader resourceLoader) {
 	    // 添加 RandomValuePropertySource 到 environment 中
 		RandomValuePropertySource.addToEnvironment(environment);
-		// 创建 Loader 对象，进行加载
+		// 创建Loader对象，进行配置的加载
 		new Loader(environment, resourceLoader).load();
 	}
 
@@ -291,7 +307,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 
 		Loader(ConfigurableEnvironment environment, ResourceLoader resourceLoader) {
 			this.environment = environment;
-			// 创建 PropertySourcesPlaceholdersResolver 对象
+			// 创建 PropertySourcesPlaceholdersResolver 对象，该对象是用来对占位符进行处理的
 			this.placeholdersResolver = new PropertySourcesPlaceholdersResolver(this.environment);
 			// 创建 DefaultResourceLoader 对象
 			this.resourceLoader = (resourceLoader != null) ? resourceLoader : new DefaultResourceLoader();
@@ -299,6 +315,9 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 			this.propertySourceLoaders = SpringFactoriesLoader.loadFactories(PropertySourceLoader.class, getClass().getClassLoader());
 		}
 
+		/**
+		* 加载配置
+		*/
 		public void load() {
 		    // 初始化变量
 			this.profiles = new LinkedList<>(); // 未处理的 Profile 集合
@@ -442,6 +461,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 			};
 		}
 
+		// 加载 Profile 指定的配置文件（带后缀）
 		private void load(Profile profile, DocumentFilterFactory filterFactory, DocumentConsumer consumer) {
 			// 获得要检索配置的路径
 		    getSearchLocations().forEach((location) -> {
@@ -455,6 +475,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 			});
 		}
 
+		// 加载 Profile 指定的配置文件（带后缀）
 		private void load(String location, String name, Profile profile, DocumentFilterFactory filterFactory, DocumentConsumer consumer) {
 			// 这块逻辑先无视，因为我们不会配置 name 为空。
             // 默认情况下，name 为 DEFAULT_NAMES=application
@@ -487,6 +508,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 					.anyMatch((fileExtension) -> StringUtils.endsWithIgnoreCase(name, fileExtension));
 		}
 
+		// 加载 Profile 指定的配置文件（带后缀）
 		private void loadForFileExtension(PropertySourceLoader loader, String prefix,
 				String fileExtension, Profile profile,
 				DocumentFilterFactory filterFactory, DocumentConsumer consumer) {
@@ -516,6 +538,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 			load(loader, prefix + fileExtension, profile, profileFilter, consumer);
 		}
 
+//		加载（无需带 Profile）指定的配置文件（带后缀).
 		private void load(PropertySourceLoader loader, String location, Profile profile, DocumentFilter filter, DocumentConsumer consumer) {
 			try {
 			    // 判断指定的配置文件是否存在。若不存在，则直接返回
@@ -537,6 +560,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 				}
 				// 加载配置文件，返回 Document 数组
 				String name = "applicationConfig: [" + location + "]";
+//				加载properties和yaml文件
 				List<Document> documents = loadDocuments(loader, name, resource);
 				// 如果没加载到，则直接返回
 				if (CollectionUtils.isEmpty(documents)) {
@@ -586,6 +610,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 			List<Document> documents = this.loadDocumentsCache.get(cacheKey);
 			// 如果不存在，则使用 PropertySourceLoader 加载指定配置文件
 			if (documents == null) {
+//				加载properties和yaml文件
 				List<PropertySource<?>> loaded = loader.load(name, resource);
 				// 将返回的 PropertySource 数组，封装成 Document 数组
 				documents = asDocuments(loaded);

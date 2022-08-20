@@ -285,11 +285,12 @@ public class SpringApplication {
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
-		// 初始化 initializers 属性
+		// 初始化 initializers 属性  从依赖的所有jar包中找到spring.factories中是ApplicationContextInitializer接口的实现类的集合，
+		// 并封装到SpringApplication的List<ApplicationContextInitializer<?>> initializers的集合中
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
 		// 初始化 listeners 属性
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
-		// 初始化 mainApplicationClass 属性
+		// 初始化 mainApplicationClass 属性  是通过new出来个运行期异常获取堆栈信息，通过遍历堆栈信息来找到main方法所在的类
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -324,13 +325,18 @@ public class SpringApplication {
 		Collection<SpringBootExceptionReporter> exceptionReporters = new ArrayList<>();
 		// 配置 headless 属性
 		configureHeadlessProperty();
-		// 获得 SpringApplicationRunListener 的数组，并启动监听
+		// 获得 SpringApplicationRunListener运行监听器 的数组，并启动监听 【注意运行监听器是此时获得的，ApplicationListener监听器是在创建SpringApplication
+		// 对象时从配置文件中收集的，两者的作用不一样，时机也不一样，注意区分,创建运行监听器的目的其实是为了调用Spring的广播器SimpleApplicationEventMulticaster发送事件，
+		// 而发送事件的监听器就是SpringApplication收集的ApplicationListener的实现类。实现了SpringApplicationRunListeners运行监听器的类，可以在事件发布之前做一些操作，
+		// 实现了ApplicationListener事件监听的类可以在事件发布后通过监听相应的事件做一些操作，注意两个扩展点的不同时机】
 		SpringApplicationRunListeners listeners = getRunListeners(args);
+		// 这个时候会发布启动事件   凡事事件可以监听后做操作的都是属于扩展点哦，以后要注意了
 		listeners.starting();
 		try {
 		    // 创建  ApplicationArguments 对象
 			ApplicationArguments applicationArguments = new DefaultApplicationArguments(args);
             // 加载属性配置。执行完成后，所有的 environment 的属性都会加载进来，包括 application.properties 和外部的属性配置。
+//			此处可以进行配置的增删改查,提供了好几个入口让我们接入进来
 			ConfigurableEnvironment environment = prepareEnvironment(listeners, applicationArguments);
 			configureIgnoreBeanInfo(environment);
 			// 打印 Spring Banner
@@ -342,9 +348,10 @@ public class SpringApplication {
 					SpringBootExceptionReporter.class,
 					new Class[] { ConfigurableApplicationContext.class }, context);
 			// 主要是调用所有初始化类的 initialize 方法
+			// 这里提供好几个入口让我们介入
 			prepareContext(context, environment, listeners, applicationArguments,
 					printedBanner);
-			// 初始化 Spring 容器。
+			// 初始化 Spring 容器。就是执行13大步的模板方法
 			refreshContext(context);
 			// 执行 Spring 容器的初始化的后置逻辑。默认实现为空。
 			afterRefresh(context, applicationArguments);
@@ -356,7 +363,7 @@ public class SpringApplication {
 			}
 			// 通知 SpringApplicationRunListener 的数组，Spring 容器启动完成。
 			listeners.started(context);
-			// 调用 ApplicationRunner 或者 CommandLineRunner 的运行方法。TODO
+			// 调用 ApplicationRunner 或者 CommandLineRunner 的运行方法
 			callRunners(context, applicationArguments);
 		} catch (Throwable ex) {
 		    // 如果发生异常，则进行处理，并抛出 IllegalStateException 异常
@@ -377,10 +384,11 @@ public class SpringApplication {
 
 	private ConfigurableEnvironment prepareEnvironment(SpringApplicationRunListeners listeners, ApplicationArguments applicationArguments) {
 		// Create and configure the environment
-        // 创建 ConfigurableEnvironment 对象，并进行配置
+        // 创建 ConfigurableEnvironment 对象，并进行配置。创建出来后最重要的是如何配置它，一定要看看有哪些扩展点
+		// 注意点，springboot和spring整合之后，创建ConfigurableEnvironment是在此处进行的，此处创建好后，当容器刷新时会传给spring进行使用。不整合的话是在spring中创建的
 		ConfigurableEnvironment environment = getOrCreateEnvironment();
 		configureEnvironment(environment, applicationArguments.getSourceArgs());
-        // 通知 SpringApplicationRunListener 的数组，环境变量已经准备完成。
+        // 通知 SpringApplicationRunListener 的数组，环境变量已经准备完成。 =============这个地方是扩展点，可以发送通知==============
 		listeners.environmentPrepared(environment);
 		// 绑定 environment 到 SpringApplication 上
 		bindToSpringApplication(environment);
@@ -411,9 +419,9 @@ public class SpringApplication {
 	    context.setEnvironment(environment);
 	    // 设置 context 的一些属性
 		postProcessApplicationContext(context);
-		// 初始化 ApplicationContextInitializer
+		// 初始化 ApplicationContextInitializer 这里可通过Spi的方式实现扩展点
 		applyInitializers(context);
-        // 通知 SpringApplicationRunListener 的数组，Spring 容器准备完成。
+        // 通知 SpringApplicationRunListener 的数组，Spring 容器准备完成。这个地方也是扩展点，会依次迭代监听器，我们只需要实现监听器后监听对应的事件就可以了
 		listeners.contextPrepared(context);
 		// 打印日志
 		if (this.logStartupInfo) {
@@ -435,7 +443,7 @@ public class SpringApplication {
 		Set<Object> sources = getAllSources();
 		Assert.notEmpty(sources, "Sources must not be empty");
 		load(context, sources.toArray(new Object[0]));
-        // 通知 SpringApplicationRunListener 的数组，Spring 容器加载完成。
+        // 通知 SpringApplicationRunListener 的数组，Spring 容器加载完成。这个地方也是扩展点，会依次迭代监听器，我们只需要实现监听器后监听对应的事件就可以了
         listeners.contextLoaded(context);
 	}
 
@@ -459,6 +467,7 @@ public class SpringApplication {
 
 	private SpringApplicationRunListeners getRunListeners(String[] args) {
 		Class<?>[] types = new Class<?>[] { SpringApplication.class, String[].class };
+//		初始化运行监听器,默认只有一个实现类EventPublishingRunListener
 		return new SpringApplicationRunListeners(logger, getSpringFactoriesInstances(
 				SpringApplicationRunListener.class, types, this, args));
 	}
@@ -474,13 +483,17 @@ public class SpringApplication {
 		return getSpringFactoriesInstances(type, new Class<?>[] {});
 	}
 
+	/**
+	* 从springFactories中获取实例，这个地方会进行实例化
+	*/
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
 			Class<?>[] parameterTypes, Object... args) {
+		// 返回线程上下文加载器【应用类或者系统类加载器】，如果不存在就返回加载ClassUtils的类加载器
 		ClassLoader classLoader = getClassLoader();
 		// Use names and ensure unique to protect against duplicates
         // 加载指定类型对应的，在 `META-INF/spring.factories` 里的类名的数组
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
-		// 创建对象们
+		// 反射创建对象
 		List<T> instances = createSpringFactoriesInstances(type, parameterTypes, classLoader, args, names);
 		// 排序对象们
 		AnnotationAwareOrderComparator.sort(instances);
@@ -506,13 +519,13 @@ public class SpringApplication {
 		// 遍历 names 数组
 		for (String name : names) {
 			try {
-			    // 获得 name 对应的类
+			    // 获得 name 对应的类，name是全限定名
 				Class<?> instanceClass = ClassUtils.forName(name, classLoader);
 				// 判断类是否实现自 type 类
 				Assert.isAssignable(type, instanceClass);
-				// 获得构造方法
+				// 根据参数类型获得构造方法
 				Constructor<?> constructor = instanceClass.getDeclaredConstructor(parameterTypes);
-				// 创建对象
+				// 通过有参构造方法创建对象
 				T instance = (T) BeanUtils.instantiateClass(constructor, args);
 				instances.add(instance);
 			} catch (Throwable ex) {
@@ -523,14 +536,14 @@ public class SpringApplication {
 	}
 
     /**
-     * @return 获得或创建 ConfigurableEnvironment 对象
+     * @return 获得或创建 ConfigurableEnvironment 对象。创建出来后最重要的是如何配置它
      */
 	private ConfigurableEnvironment getOrCreateEnvironment() {
 	    // 已经存在，则进行返回
 		if (this.environment != null) {
 			return this.environment;
 		}
-		// 不存在，则根据 webApplicationType 类型，进行创建。
+		// 不存在，则根据 webApplicationType 类型，进行创建。创建出来后最重要的是如何配置它
 		switch (this.webApplicationType) {
             case SERVLET:
                 return new StandardServletEnvironment();
@@ -577,7 +590,7 @@ public class SpringApplication {
 		if (this.defaultProperties != null && !this.defaultProperties.isEmpty()) {
 			sources.addLast(new MapPropertySource("defaultProperties", this.defaultProperties));
 		}
-		// 来自启动参数的
+		// 来自命令行启动参数的
 		if (this.addCommandLineProperties && args.length > 0) {
 			String name = CommandLinePropertySource.COMMAND_LINE_PROPERTY_SOURCE_NAME;
 			if (sources.contains(name)) { // 已存在，就进行替换
@@ -709,7 +722,7 @@ public class SpringApplication {
 		    // 校验 ApplicationContextInitializer 的泛型非空
 			Class<?> requiredType = GenericTypeResolver.resolveTypeArgument(initializer.getClass(), ApplicationContextInitializer.class);
 			Assert.isInstanceOf(requiredType, context, "Unable to call initializer.");
-			// 初始化 ApplicationContextInitializer
+			// 初始化 ApplicationContextInitializer,实现了ApplicationContextInitializer接口的方法会依次被调用initialize方法
 			initializer.initialize(context);
 		}
 	}
@@ -794,11 +807,13 @@ public class SpringApplication {
 	 * {@link #setResourceLoader(ResourceLoader) resourceLoader} is set, or the context
 	 * class loader (if not null), or the loader of the Spring {@link ClassUtils} class.
 	 * @return a ClassLoader (never null)
+	 * 返回线程上下文加载器【应用类或者系统类加载器】，如果不存在就返回加载ClassUtils的类加载器
 	 */
 	public ClassLoader getClassLoader() {
 		if (this.resourceLoader != null) {
 			return this.resourceLoader.getClassLoader();
 		}
+		// 返回线程上下文加载器【应用类或者系统类加载器】，如果不存在就返回加载ClassUtils的类加载器
 		return ClassUtils.getDefaultClassLoader();
 	}
 

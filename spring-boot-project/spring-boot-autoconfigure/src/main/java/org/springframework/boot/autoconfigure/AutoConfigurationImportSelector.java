@@ -54,6 +54,9 @@ import java.util.stream.Collectors;
  * @author Madhura Bhave
  * @since 1.3.0
  * @see EnableAutoConfiguration
+ *
+ * DeferredImportSelector是spring提供的，Deferred延迟之意，ImportSelector 的一种扩展，在处理完所有 @Configuration 类型的Bean之后运行。
+ * 当所选导入为 @Conditional 时，这种类型的选择器特别有用。
  */
 public class AutoConfigurationImportSelector
 		implements DeferredImportSelector, BeanClassLoaderAware, ResourceLoaderAware,
@@ -76,12 +79,15 @@ public class AutoConfigurationImportSelector
 
 	private ResourceLoader resourceLoader;
 
-	// TODO 芋艿 可以暂时忽略
+	/**
+	* 返回的就是自动配置类的字符串数组，这些数组的元素都是全限定名，到时候会通过反射方式创建
+	*/
 	@Override
 	public String[] selectImports(AnnotationMetadata annotationMetadata) {
 		if (!isEnabled(annotationMetadata)) {
 			return NO_IMPORTS;
 		}
+		// 加载自动配置类
 		AutoConfigurationMetadata autoConfigurationMetadata = AutoConfigurationMetadataLoader.loadMetadata(this.beanClassLoader);
 		AutoConfigurationEntry autoConfigurationEntry = getAutoConfigurationEntry(autoConfigurationMetadata, annotationMetadata);
 		return StringUtils.toStringArray(autoConfigurationEntry.getConfigurations());
@@ -170,9 +176,10 @@ public class AutoConfigurationImportSelector
 	 * @param attributes the {@link #getAttributes(AnnotationMetadata) annotation
 	 * attributes}
 	 * @return a list of candidate configurations
+	 * META-INF/spring.factories里面的文件是key，value的形式，是Map<String, List<String>>结构，最后会获取Key中包含EnableAutoConfig对应的list集合
 	 */
 	protected List<String> getCandidateConfigurations(AnnotationMetadata metadata, AnnotationAttributes attributes) {
-	    // 加载指定类型 EnableAutoConfiguration 对应的，在 `META-INF/spring.factories` 里的类名的数组
+	    // 加载指定类型 EnableAutoConfiguration 对应的，在 `META-INF/spring.factories` 里的类名的数组     getSpringFactoriesLoaderFactoryClass()传入的Class就是 @EnableAutoConfiguration
 		List<String> configurations = SpringFactoriesLoader.loadFactoryNames(getSpringFactoriesLoaderFactoryClass(), getBeanClassLoader());
 		// 断言，非空
 		Assert.notEmpty(configurations, "No auto configuration classes found in META-INF/spring.factories. If you " + "are using a custom packaging, make sure that file is correct.");

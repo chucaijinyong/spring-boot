@@ -61,6 +61,7 @@ public abstract class AutoConfigurationPackages {
 	 * @param beanFactory the source bean factory
 	 * @return a list of auto-configuration packages
 	 * @throws IllegalStateException if auto-configuration is not enabled
+	 * 取出所有的包
 	 */
 	public static List<String> get(BeanFactory beanFactory) {
 		try {
@@ -86,16 +87,21 @@ public abstract class AutoConfigurationPackages {
 		if (registry.containsBeanDefinition(BEAN)) {
 			BeanDefinition beanDefinition = registry.getBeanDefinition(BEAN);
 			ConstructorArgumentValues constructorArguments = beanDefinition.getConstructorArgumentValues();
+			// addBasePackages：添加根包扫描包
 			constructorArguments.addIndexedArgumentValue(0, addBasePackages(constructorArguments, packageNames));
         // 如果不存在该 BEAN ，则创建一个 Bean ，并进行注册
         } else { GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
 			beanDefinition.setBeanClass(BasePackages.class);
 			beanDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0, packageNames);
 			beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);
+//			BEAN = AutoConfigurationPackages.class.getName()
 			registry.registerBeanDefinition(BEAN, beanDefinition);
 		}
 	}
 
+	/**
+	* 合并包路径
+	*/
 	private static String[] addBasePackages(ConstructorArgumentValues constructorArguments, String[] packageNames) {
 		// 获得已存在的
 	    String[] existing = (String[]) constructorArguments.getIndexedArgumentValue(0, String[].class).getValue();
@@ -109,6 +115,7 @@ public abstract class AutoConfigurationPackages {
 	/**
 	 * {@link ImportBeanDefinitionRegistrar} to store the base package from the importing
 	 * configuration.
+	 * Registrar 实现了 ImportBeanDefinitionRegistrar 接口，它向IOC容器中要手动注册组件
 	 */
 	static class Registrar implements ImportBeanDefinitionRegistrar, DeterminableImports {
 
@@ -171,6 +178,9 @@ public abstract class AutoConfigurationPackages {
 
 		private boolean loggedBasePackageInfo;
 
+		/**
+		* 有参构造
+		*/
 		BasePackages(String... names) {
 			List<String> packages = new ArrayList<>();
 			for (String name : names) {
@@ -181,6 +191,9 @@ public abstract class AutoConfigurationPackages {
 			this.packages = packages;
 		}
 
+		/**
+		* 获取所有指定的包路径
+		*/
 		public List<String> get() {
 			if (!this.loggedBasePackageInfo) {
 				if (this.packages.isEmpty()) {
