@@ -16,9 +16,6 @@
 
 package org.springframework.boot.context;
 
-import java.io.IOException;
-import java.util.Collection;
-
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.BeanFactory;
 import org.springframework.beans.factory.BeanFactoryAware;
@@ -26,6 +23,9 @@ import org.springframework.beans.factory.ListableBeanFactory;
 import org.springframework.core.type.classreading.MetadataReader;
 import org.springframework.core.type.classreading.MetadataReaderFactory;
 import org.springframework.core.type.filter.TypeFilter;
+
+import java.io.IOException;
+import java.util.Collection;
 
 /**
  * Provides exclusion {@link TypeFilter TypeFilters} that are loaded from the
@@ -63,6 +63,7 @@ public class TypeExcludeFilter implements TypeFilter, BeanFactoryAware {
 				&& getClass() == TypeExcludeFilter.class) {
 			Collection<TypeExcludeFilter> delegates = ((ListableBeanFactory) this.beanFactory)
 					.getBeansOfType(TypeExcludeFilter.class).values();
+			// 从Spring容器中获取TypeExcludeFilter，然后进行匹配，匹配的则不解析
 			for (TypeExcludeFilter delegate : delegates) {
 				if (delegate.match(metadataReader, metadataReaderFactory)) {
 					return true;

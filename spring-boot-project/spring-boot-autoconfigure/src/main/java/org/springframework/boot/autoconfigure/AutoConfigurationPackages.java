@@ -90,7 +90,8 @@ public abstract class AutoConfigurationPackages {
 			// addBasePackages：添加根包扫描包
 			constructorArguments.addIndexedArgumentValue(0, addBasePackages(constructorArguments, packageNames));
         // 如果不存在该 BEAN ，则创建一个 Bean ，并进行注册
-        } else { GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
+        } else {
+			GenericBeanDefinition beanDefinition = new GenericBeanDefinition();
 			beanDefinition.setBeanClass(BasePackages.class);
 			beanDefinition.getConstructorArgumentValues().addIndexedArgumentValue(0, packageNames);
 			beanDefinition.setRole(BeanDefinition.ROLE_INFRASTRUCTURE);

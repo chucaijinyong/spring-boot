@@ -133,6 +133,7 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 	@Override
 	public final void refresh() throws BeansException, IllegalStateException {
 		try {
+//			调spring的
 			super.refresh();
 		} catch (RuntimeException ex) {
 		    // 如果发生异常，停止 WebServer
@@ -141,6 +142,9 @@ public class ServletWebServerApplicationContext extends GenericWebApplicationCon
 		}
 	}
 
+	/**
+	* AbstractApplicationContext调过来，在这里创建web服务器
+	*/
 	@Override
 	protected void onRefresh() {
 	    // 调用父方法

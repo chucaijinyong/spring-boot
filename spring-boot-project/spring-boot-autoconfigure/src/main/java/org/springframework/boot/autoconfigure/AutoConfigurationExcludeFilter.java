@@ -43,9 +43,13 @@ public class AutoConfigurationExcludeFilter implements TypeFilter, BeanClassLoad
 		this.beanClassLoader = beanClassLoader;
 	}
 
+	/**
+	* metadataReader读取到的是类的元数据信息
+	*/
 	@Override
 	public boolean match(MetadataReader metadataReader,
 			MetadataReaderFactory metadataReaderFactory) throws IOException {
+//		类上是否有Configuration注解，是否是自动配置类
 		return isConfiguration(metadataReader) && isAutoConfiguration(metadataReader);
 	}
 

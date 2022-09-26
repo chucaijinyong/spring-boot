@@ -162,6 +162,14 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 	*/
 	private void onApplicationEnvironmentPreparedEvent(ApplicationEnvironmentPreparedEvent event) {
 		// 加载指定类型 EnvironmentPostProcessor 对应的，在 `META-INF/spring.factories` 里的类名的数组
+		// 从spring.factories中拿出EnvironmentPostProcessor进一步处理Environment
+		// RandomValuePropertySourceEnvironmentPostProcessor
+		// SystemEnvironmentPropertySourceEnvironmentPostProcessor
+		// SpringApplicationJsonEnvironmentPostProcessor
+		// CloudFoundryVcapEnvironmentPostProcessor
+		// ConfigDataEnvironmentPostProcessor
+		// IntegrationPropertiesEnvironmentPostProcessor
+		// DebugAgentEnvironmentPostProcessor
 	    List<EnvironmentPostProcessor> postProcessors = loadPostProcessors();
 	    // 加入自己 ConfigFileApplicationListener。这样的话加上读取到的三个就会有4个实现类
 		postProcessors.add(this);
@@ -377,6 +385,7 @@ public class ConfigFileApplicationListener implements EnvironmentPostProcessor, 
 		}
 
 		private Set<Profile> getProfilesActivatedViaProperty() {
+//			ACTIVE_PROFILES_PROPERTY = "spring.profiles.active"
 			if (!this.environment.containsProperty(ACTIVE_PROFILES_PROPERTY)
 					&& !this.environment.containsProperty(INCLUDE_PROFILES_PROPERTY)) {
 				return Collections.emptySet();

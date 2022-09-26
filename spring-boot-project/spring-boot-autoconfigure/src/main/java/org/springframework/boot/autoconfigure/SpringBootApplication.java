@@ -46,7 +46,9 @@ import java.lang.annotation.*;
 @EnableAutoConfiguration
 @ComponentScan(excludeFilters = {
 		@Filter(type = FilterType.CUSTOM, classes = TypeExcludeFilter.class),
+//		是配置类且是自动配置类，不会去扫描，因为自动配置类解析时会解析，如果此时扫描就会重复解析了，但这是没必要的
 		@Filter(type = FilterType.CUSTOM, classes = AutoConfigurationExcludeFilter.class) })
+// AutoConfigurationExcludeFilter的作用是扫描到的配置类名字如果在自动配置类名集合中，就不解析
 public @interface SpringBootApplication {
 
 	/**

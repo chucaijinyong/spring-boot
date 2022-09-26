@@ -81,9 +81,11 @@ public class AutoConfigurationImportSelector
 
 	/**
 	* 返回的就是自动配置类的字符串数组，这些数组的元素都是全限定名，到时候会通过反射方式创建
+	 * 不会进到这里，当实现了getImportGroup之后，会走group里面的process方法
 	*/
 	@Override
 	public String[] selectImports(AnnotationMetadata annotationMetadata) {
+//		会在所有@Configuration都解析完之后才执行
 		if (!isEnabled(annotationMetadata)) {
 			return NO_IMPORTS;
 		}
@@ -101,32 +103,43 @@ public class AutoConfigurationImportSelector
 	 * @param autoConfigurationMetadata the auto-configuration metadata
 	 * @param annotationMetadata the annotation metadata of the configuration class
 	 * @return the auto-configurations that should be imported
+	 * 获取自动配置类
 	 */
 	protected AutoConfigurationEntry getAutoConfigurationEntry(AutoConfigurationMetadata autoConfigurationMetadata, AnnotationMetadata annotationMetadata) {
 	    // 1. 判断是否开启。如未开启，返回空串
 		if (!isEnabled(annotationMetadata)) {
 			return EMPTY_ENTRY;
 		}
-		// 2. 获得注解的属性
+		// 2. 获得@EnableAutoConfiguration注解的属性
 		AnnotationAttributes attributes = getAttributes(annotationMetadata);
-		// 3. 获得符合条件的配置类的数组
+		// 3. 获得spring.factories中所有的AutoConfiguration 符合条件的配置类的数组
 		List<String> configurations = getCandidateConfigurations(annotationMetadata, attributes);
-		// 3.1 移除重复的配置类
+		// 3.1 移除重复的配置类，按照类名去重
 		configurations = removeDuplicates(configurations);
-		// 4. 获得需要排除的配置类
+		// 4. 获得需要排除的配置类，通过@EnableAutoConfiguration注解的exclude属性，或者spring.autoconfigure.exclude属性
 		Set<String> exclusions = getExclusions(annotationMetadata, attributes);
 		// 4.1 校验排除的配置类是否合法
 		checkExcludedClasses(configurations, exclusions);
 		// 4.2 从 configurations 中，移除需要排除的配置类
 		configurations.removeAll(exclusions);
 		// 5. 根据条件（Condition），过滤掉不符合条件的配置类
+		// 获取spring.factories中的AutoConfigurationImportFilter对AutoConfiguration进行过滤
+		// 默认会拿到OnBeanCondition、OnClassCondition、OnWebApplicationCondition
+		// 这三个会去判断上面的AutoConfiguration是否符合它们自身所要求的条件，不符合的会过滤掉，表示不会进行解析了
+		// 会利用spring-autoconfigure-metadata.properties中的配置来进行过滤
+		// spring-autoconfigure-metadata.properties文件中的内容是利用Java中的AbstractProcessor技术在编译时生成出来的
 		configurations = filter(configurations, autoConfigurationMetadata);
 		// 6. 触发自动配置类引入完成的事件
+		// configurations表示合格的，exclusions表示被排除的，把它们记录在ConditionEvaluationReportAutoConfigurationImportListener中
 		fireAutoConfigurationImportEvents(configurations, exclusions);
 		// 7. 创建 AutoConfigurationEntry 对象
+		// 最后返回的AutoConfiguration都是符合条件的
 		return new AutoConfigurationEntry(configurations, exclusions);
 	}
 
+	/**
+	* 会走这里
+	*/
 	@Override
 	public Class<? extends Group> getImportGroup() {
 		return AutoConfigurationGroup.class;
@@ -431,6 +444,9 @@ public class AutoConfigurationImportSelector
 			this.resourceLoader = resourceLoader;
 		}
 
+		/**
+		* 最终会走这里
+		*/
 		@Override
 		public void process(AnnotationMetadata annotationMetadata, DeferredImportSelector deferredImportSelector) {
 			// 断言
@@ -439,12 +455,13 @@ public class AutoConfigurationImportSelector
 					() -> String.format("Only %s implementations are supported, got %s",
 							AutoConfigurationImportSelector.class.getSimpleName(),
 							deferredImportSelector.getClass().getName()));
-		    // 获得 AutoConfigurationEntry 对象
+		    // 获得所有的自动配置类，并赋值给AutoConfigurationEntries和entries属性，封装到AutoConfigurationEntry对象
 			AutoConfigurationEntry autoConfigurationEntry = ((AutoConfigurationImportSelector) deferredImportSelector)
 					.getAutoConfigurationEntry(getAutoConfigurationMetadata(), annotationMetadata);
 			// 添加到 autoConfigurationEntries 中
 			this.autoConfigurationEntries.add(autoConfigurationEntry);
 			// 添加到 entries 中
+//			每个自动配置类对应annotationMetadata，selectImports()方法会取出来用
 			for (String importClassName : autoConfigurationEntry.getConfigurations()) {
 				this.entries.putIfAbsent(importClassName, annotationMetadata);
 			}
@@ -467,7 +484,7 @@ public class AutoConfigurationImportSelector
 					.collect(Collectors.toCollection(LinkedHashSet::new));
 			// 从 processedConfigurations 中，移除排除的
 			processedConfigurations.removeAll(allExclusions);
-			// 处理，返回结果
+			// 给自动配置类排序【比如@AutoConfigureOrder，@AutoConfigureAfter，@AutoConfigureBefore】，返回结果
 			return sortAutoConfigurations(processedConfigurations, getAutoConfigurationMetadata()) // 排序
                         .stream()
                         .map((importClassName) -> new Entry(this.entries.get(importClassName), importClassName)) // 创建 Entry 对象
