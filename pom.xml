@@ -9,7 +9,17 @@
 	<packaging>pom</packaging>
 	<name>Spring Boot Build</name>
 	<description>Spring Boot Build</description>
+	<!--版本及属性配置-->
 	<properties>
+		<!-- 文件拷贝时的编码 -->
+		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+		<project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+		<!-- 编译时的编码 -->
+		<maven.compiler.encoding>UTF-8</maven.compiler.encoding>
+		<maven.compiler.source>1.8</maven.compiler.source>
+		<maven.compiler.target>1.8</maven.compiler.target>
+		<maven.compiler.compilerVersion>1.8</maven.compiler.compilerVersion>
+		<java.version>1.8</java.version>
 		<revision>2.2.0.BUILD-SNAPSHOT</revision>
 		<main.basedir>${basedir}</main.basedir>
         <disable.checks>true</disable.checks>
@@ -29,55 +39,58 @@
 			</properties>
 			<build>
 				<plugins>
-					<plugin>
-						<groupId>org.apache.maven.plugins</groupId>
-						<artifactId>maven-checkstyle-plugin</artifactId>
-						<version>3.0.0</version>
-						<dependencies>
-							<dependency>
-								<groupId>com.puppycrawl.tools</groupId>
-								<artifactId>checkstyle</artifactId>
-								<version>8.12</version>
-							</dependency>
-							<dependency>
-								<groupId>io.spring.javaformat</groupId>
-								<artifactId>spring-javaformat-checkstyle</artifactId>
-								<version>${spring-javaformat.version}</version>
-							</dependency>
-						</dependencies>
-						<executions>
-							<execution>
-								<id>checkstyle-validation</id>
-								<phase>validate</phase>
-								<configuration>
-									<skip>${disable.checks}</skip>
-									<configLocation>src/checkstyle/checkstyle.xml</configLocation>
-									<suppressionsLocation>src/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>
-									<includeTestSourceDirectory>true</includeTestSourceDirectory>
-									<propertyExpansion>main.basedir=${main.basedir}</propertyExpansion>
-								</configuration>
-								<goals>
-									<goal>check</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
-					<plugin>
-						<groupId>io.spring.javaformat</groupId>
-						<artifactId>spring-javaformat-maven-plugin</artifactId>
-						<version>${spring-javaformat.version}</version>
-						<executions>
-							<execution>
-								<phase>validate</phase>
-								<configuration>
-									<skip>${disable.checks}</skip>
-								</configuration>
-								<goals>
-									<goal>validate</goal>
-								</goals>
-							</execution>
-						</executions>
-					</plugin>
+<!--					<plugin>-->
+<!--						<groupId>org.apache.maven.plugins</groupId>-->
+<!--						<artifactId>maven-checkstyle-plugin</artifactId>-->
+<!--						<version>3.0.0</version>-->
+<!--						<dependencies>-->
+<!--							<dependency>-->
+<!--								<groupId>com.puppycrawl.tools</groupId>-->
+<!--								<artifactId>checkstyle</artifactId>-->
+<!--								<version>8.12</version>-->
+<!--							</dependency>-->
+<!--							<dependency>-->
+<!--								<groupId>io.spring.javaformat</groupId>-->
+<!--								<artifactId>spring-javaformat-checkstyle</artifactId>-->
+<!--								<version>${spring-javaformat.version}</version>-->
+<!--							</dependency>-->
+<!--						</dependencies>-->
+<!--						<executions>-->
+<!--							<execution>-->
+<!--								<id>checkstyle-validation</id>-->
+<!--								<phase>validate</phase>-->
+<!--&lt;!&ndash;								<configuration>&ndash;&gt;-->
+<!--&lt;!&ndash;									<skip>${disable.checks}</skip>&ndash;&gt;-->
+<!--&lt;!&ndash;									<configLocation>src/checkstyle/checkstyle.xml</configLocation>&ndash;&gt;-->
+<!--&lt;!&ndash;									<suppressionsLocation>src/checkstyle/checkstyle-suppressions.xml</suppressionsLocation>&ndash;&gt;-->
+<!--&lt;!&ndash;									<includeTestSourceDirectory>true</includeTestSourceDirectory>&ndash;&gt;-->
+<!--&lt;!&ndash;									<propertyExpansion>main.basedir=${main.basedir}</propertyExpansion>&ndash;&gt;-->
+<!--&lt;!&ndash;								</configuration>&ndash;&gt;-->
+<!--								<configuration>-->
+<!--									<skip>true</skip>-->
+<!--								</configuration>-->
+<!--								<goals>-->
+<!--									<goal>check</goal>-->
+<!--								</goals>-->
+<!--							</execution>-->
+<!--						</executions>-->
+<!--					</plugin>-->
+<!--					<plugin>-->
+<!--						<groupId>io.spring.javaformat</groupId>-->
+<!--						<artifactId>spring-javaformat-maven-plugin</artifactId>-->
+<!--						<version>${spring-javaformat.version}</version>-->
+<!--						<executions>-->
+<!--							<execution>-->
+<!--								<phase>validate</phase>-->
+<!--								<configuration>-->
+<!--									<skip>${disable.checks}</skip>-->
+<!--								</configuration>-->
+<!--								<goals>-->
+<!--									<goal>validate</goal>-->
+<!--								</goals>-->
+<!--							</execution>-->
+<!--						</executions>-->
+<!--					</plugin>-->
 				</plugins>
 			</build>
 			<modules>

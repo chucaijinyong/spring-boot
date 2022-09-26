@@ -251,11 +251,11 @@
 	</dependencyManagement>
 	<dependencies>
 		<!-- Generally Useful Test Dependencies -->
-		<dependency>
-			<groupId>junit</groupId>
-			<artifactId>junit</artifactId>
-			<scope>test</scope>
-		</dependency>
+<!--		<dependency>-->
+<!--			<groupId>junit</groupId>-->
+<!--			<artifactId>junit</artifactId>-->
+<!--			<scope>test</scope>-->
+<!--		</dependency>-->
 		<dependency>
 			<groupId>org.assertj</groupId>
 			<artifactId>assertj-core</artifactId>
@@ -283,11 +283,12 @@
 				<plugin>
 					<groupId>org.jetbrains.kotlin</groupId>
 					<artifactId>kotlin-maven-plugin</artifactId>
-					<version>${kotlin.version}</version>
+<!--					<version>${kotlin.version}</version>-->
+					<version>1.5.30</version>
 					<configuration>
 						<jvmTarget>${java.version}</jvmTarget>
-						<apiVersion>1.1</apiVersion>
-						<languageVersion>1.1</languageVersion>
+						<apiVersion>1.5</apiVersion>
+						<languageVersion>1.5</languageVersion>
 						<javaParameters>true</javaParameters>
 					</configuration>
 				</plugin>
