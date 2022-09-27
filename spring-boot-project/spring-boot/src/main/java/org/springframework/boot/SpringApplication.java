@@ -193,7 +193,7 @@ public class SpringApplication {
 	private boolean addCommandLineProperties = true;
 
     /**
-     * 是否添加共享的 ConversionService
+     * 是否添加共享的类型转换器ConversionService
      */
 	private boolean addConversionService = true;
 
@@ -275,7 +275,7 @@ public class SpringApplication {
 	 * documentation for details. The instance can be customized before calling
 	 * {@link #run(String...)}.
 	 * @param resourceLoader the resource loader to use
-	 * @param primarySources the primary bean sources
+	 * @param primarySources the primary bean sources 主配置类，可以多个
 	 * @see #run(Class, String[])
 	 * @see #setSources(Set)
 	 */
@@ -284,16 +284,15 @@ public class SpringApplication {
 		this.resourceLoader = resourceLoader;
 		Assert.notNull(primarySources, "PrimarySources must not be null");
 		this.primarySources = new LinkedHashSet<>(Arrays.asList(primarySources));
-		// 1. 推测web应用类型（NONE、REACTIVE、SERVLET）
+		// 推测web应用类型（NONE、REACTIVE、SERVLET）
 		this.webApplicationType = WebApplicationType.deduceFromClasspath();
 		// 初始化 initializers 属性  从依赖的所有jar包中找到spring.factories中是ApplicationContextInitializer接口的实现类的集合，
-		// 并封装到SpringApplication的List<ApplicationContextInitializer<?>> initializers的集合中
-//		3. 从spring.factories中获取ApplicationContextInitializer对象
+		// 并封装到SpringApplication的List<ApplicationContextInitializer<?>> initializers的集合中，这是spring的初始化器
 		setInitializers((Collection) getSpringFactoriesInstances(ApplicationContextInitializer.class));
-		// 4. 从spring.factories中获取ApplicationListener对象
+		// 从spring.factories中获取ApplicationListener对象，这里spring的监听器
 		setListeners((Collection) getSpringFactoriesInstances(ApplicationListener.class));
-		// 初始化 mainApplicationClass 属性  是通过new出来个运行期异常获取堆栈信息，通过遍历堆栈信息来找到main方法所在的类
-//		5. 推测出Main类（main()方法所在的类）
+		// 初始化 mainApplicationClass 属性  是通过new出来个运行期异常，获取堆栈信息，通过遍历堆栈信息来找到main方法所在的类
+//		推测出Main类【main()方法所在的类】
 		this.mainApplicationClass = deduceMainApplicationClass();
 	}
 
@@ -501,7 +500,7 @@ public class SpringApplication {
     /**
      * 获得指定类类对应的对象们。
      *
-     * @param type 指定类
+     * @param type 指定类型，获取的就是该类型的所有spring.factories下配置的实现类
      * @param <T> 泛型
      * @return 对象们
      */
@@ -511,13 +510,12 @@ public class SpringApplication {
 
 	/**
 	* 从springFactories中获取实例，这个地方会进行实例化
-	 * @param type 要获取的类型
+	 * @param type  指定类型，获取的就是该类型的所有spring.factories下配置的实现类
 	*/
 	private <T> Collection<T> getSpringFactoriesInstances(Class<T> type,
 			Class<?>[] parameterTypes, Object... args) {
 		// 返回线程上下文加载器【应用类或者系统类加载器】，如果不存在就返回加载ClassUtils的类加载器
 		ClassLoader classLoader = getClassLoader();
-		// Use names and ensure unique to protect against duplicates
         // 加载指定类型对应的，在 `META-INF/spring.factories` 里的类名的数组
 		Set<String> names = new LinkedHashSet<>(SpringFactoriesLoader.loadFactoryNames(type, classLoader));
 		// 反射创建对象
@@ -1351,8 +1349,8 @@ public class SpringApplication {
      *
 	 * Static helper that can be used to run a {@link SpringApplication} from the
 	 * specified source using default settings.
-	 * @param primarySource the primary source to load 加载的主类
-	 * @param args the application arguments (usually passed from a Java main method)
+	 * @param primarySource the primary source to load 加载的主配置类
+	 * @param args the application arguments (usually passed from a Java main method)  参数
 	 * @return the running {@link ApplicationContext}
 	 */
 	public static ConfigurableApplicationContext run(Class<?> primarySource, String... args) {
